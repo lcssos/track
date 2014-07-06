@@ -1,5 +1,15 @@
 <resources>
 
     <string name="app_name">足迹跟踪</string>
+    <string name="about">关于</string>
+    <string name="version_lable">程序版本：</string>
+    <string name="about_desc">      \t\tAndroid足迹跟踪
+      \n\t\t是为记录用户足迹的一款产品，
+                 产品中使用Baidu LBS开放平台和AndBase基础框架。
+      \n\t\t产品使用GPS或网络定位，即时将位置信息记录在本地的数据库中。 
+	   \n
+       \n\t\t联系电话：13366277987
+       \n\t\tQQ号：43079125</string>
+<string name="clear_cache">清空缓存</string>
 
 </resources>

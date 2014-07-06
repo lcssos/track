@@ -1,53 +1,123 @@
 package com.cs.track;
 
-import android.app.Activity;
+import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.view.View.OnClickListener;
+import android.widget.Button;
 
+import com.ab.activity.AbActivity;
+import com.ab.db.storage.AbSqliteStorage;
+import com.ab.db.storage.AbSqliteStorageListener.AbDataInsertListener;
+import com.ab.view.slidingmenu.SlidingMenu;
+import com.ab.view.titlebar.AbTitleBar;
 import com.baidu.location.BDLocation;
 import com.baidu.location.BDLocationListener;
 import com.baidu.location.LocationClient;
 import com.baidu.location.LocationClientOption;
 import com.baidu.location.LocationClientOption.LocationMode;
+import com.cs.track.model.Location;
 
-public class MainActivity extends Activity {
+public class MainActivity extends AbActivity {
 
+	// ç™¾åº¦ä½ç½®å®¢æˆ·ç«¯åŠç›‘å¬å™¨
 	public LocationClient mLocationClient = null;
 	public BDLocationListener myListener = new MyLocationListener();
+	// andbaseæ ‡é¢˜æ 
+	private AbTitleBar mAbTitleBar = null;
+	// andbase ä¾§è¾¹éšè—èœå•
+	private SlidingMenu menu;
+	// æ•°æ®åº“æ“ä½œç±»
+	public AbSqliteStorage mAbSqliteStorage = null;
+	LocationDao mLocationDao;
+	
+	private MainMenuFragment mMainMenuFragment = null;
+	private MainContentFragment mMainContentFragment = null;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 
-		setContentView(R.layout.activity_main);
+		setAbContentView(R.layout.sliding_menu_content);
+		// setContentView(R.layout.activity_main);
 
-		mLocationClient = new LocationClient(getApplicationContext()); // ÉùÃ÷LocationClientÀà
+		mAbTitleBar = this.getTitleBar();
+		mAbTitleBar.setTitleText(R.string.app_name);
+		mAbTitleBar.setLogo(R.drawable.button_selector_menu);
+		mAbTitleBar.setTitleBarBackground(R.drawable.top_bg);
+		mAbTitleBar.setTitleTextMargin(10, 0, 0, 0);
+		mAbTitleBar.setLogoLine(R.drawable.line);
+		
+		// ä¸»è§†å›¾çš„Fragmentæ·»åŠ 
+		mMainContentFragment = new MainContentFragment();
+		getSupportFragmentManager().beginTransaction().replace(R.id.content_frame, mMainContentFragment).commit();
 
+		menu = new SlidingMenu(this);
+		menu.setMode(SlidingMenu.LEFT);
+		menu.setTouchModeAbove(SlidingMenu.TOUCHMODE_FULLSCREEN);
+		menu.setShadowWidthRes(R.dimen.shadow_width);
+		menu.setShadowDrawable(R.drawable.shadow);
+		menu.setBehindOffsetRes(R.dimen.slidingmenu_offset);
+		menu.setFadeDegree(0.35f);
+		menu.attachToActivity(this, SlidingMenu.SLIDING_CONTENT);
+		
+		// menuè§†å›¾çš„Fragmentæ·»åŠ 
+		menu.setMenu(R.layout.sliding_menu_menu);
+		mMainMenuFragment = new MainMenuFragment();
+		getSupportFragmentManager().beginTransaction()
+				.replace(R.id.menu_frame, mMainMenuFragment).commit();
+
+		// å·¦ä¾§æ˜¾ç¤ºéšè—ç›‘å¬äº‹ä»¶
+		mAbTitleBar.getLogoView().setOnClickListener(new OnClickListener() {
+			@Override
+			public void onClick(View view) {
+				if (menu.isMenuShowing()) {
+					menu.showContent();
+				} else {
+					menu.showMenu();
+				}
+			}
+		});
+		
+		// æ ‡é¢˜å³ä¾§å…³äºæŒ‰é’®
+		mAbTitleBar.clearRightView();
+		View rightViewMore = mInflater.inflate(R.layout.more_btn, null);
+		mAbTitleBar.addRightView(rightViewMore);
+		Button about = (Button) rightViewMore.findViewById(R.id.moreBtn);
+		about.setOnClickListener(new View.OnClickListener() {
+			@Override
+			public void onClick(View v) {
+				Intent intent = new Intent(MainActivity.this, AboutActivity.class);
+				startActivity(intent);
+			}
+
+		});
+
+		// åˆå§‹åŒ–AbSqliteStorage
+		mAbSqliteStorage = AbSqliteStorage.getInstance(this);
+		// åˆå§‹åŒ–æ•°æ®åº“æ“ä½œå®ç°ç±»
+		mLocationDao = new LocationDao(this);
+
+		mLocationClient = new LocationClient(getApplicationContext());
 		LocationClientOption option = new LocationClientOption();
-		option.setLocationMode(LocationMode.Hight_Accuracy);// ÉèÖÃ¶¨Î»Ä£Ê½£¨¸ß¾«¶È¶¨Î»Ä£Ê½£¬µÍ¹¦ºÄ¶¨Î»Ä£Ê½ºÍ½öÓÃÉè±¸¶¨Î»Ä£Ê½£©£¬·µ»Ø×ø±êÀàĞÍ£¬ÊÇ·ñ´ò¿ªGPSµÈµÈ¡£
-		option.setCoorType("bd09ll");// ·µ»ØµÄ¶¨Î»½á¹ûÊÇ°Ù¶È¾­Î³¶È,Ä¬ÈÏÖµgcj02
-		option.setScanSpan(5 * 1000);// ÉèÖÃ·¢Æğ¶¨Î»ÇëÇóµÄ¼ä¸ôÊ±¼äÎª5000ms
-		option.setIsNeedAddress(true);// ·µ»ØµÄ¶¨Î»½á¹û°üº¬µØÖ·ĞÅÏ¢
-		option.setNeedDeviceDirect(true);// ·µ»ØµÄ¶¨Î»½á¹û°üº¬ÊÖ»ú»úÍ·µÄ·½Ïò
-
+		option.setLocationMode(LocationMode.Hight_Accuracy);
+		option.setCoorType("bd09ll");
+		option.setScanSpan(5 * 1000);
+		option.setIsNeedAddress(true);
+		option.setNeedDeviceDirect(true);
 		mLocationClient.setLocOption(option);
-
-		mLocationClient.registerLocationListener(myListener); // ×¢²á¼àÌıº¯Êı
-
+		mLocationClient.registerLocationListener(myListener);
 		mLocationClient.start();
 
 	}
 
-	public void start(View view) {
-		if (!mLocationClient.isStarted()) {
-			mLocationClient.start();
-		}
-	}
-
-	public void stop(View view) {
-		if (mLocationClient.isStarted()) {
-			mLocationClient.stop();
+	@Override
+	public void onBackPressed() {
+		if (menu.isMenuShowing()) {
+			menu.showContent();
+		} else {
+			super.onBackPressed();
 		}
 	}
 
@@ -59,33 +129,35 @@ public class MainActivity extends Activity {
 				return;
 			}
 
-			StringBuilder sb = new StringBuilder();
+			mAbSqliteStorage.insertData(new Location(location), mLocationDao, new AbDataInsertListener() {
+				@Override
+				public void onSuccess(long id) {
+				}
 
-			// µ±Ç°¶¨Î»Ê±¼ä
-			sb.append("time : ").append(location.getTime());
-			// »ñÈ¡¶¨Î»ÀàĞÍ
-			sb.append("\nerror code : ").append(location.getLocType());
-			// »ñÈ¡Î³¶È×ø±ê
-			sb.append("\nlatitude : ").append(location.getLatitude());
-			// »ñÈ¡¾­¶È×ø±ê
-			sb.append("\nlontitude : ").append(location.getLongitude());
-			// »ñÈ¡¶¨Î»¾«¶È
-			sb.append("\nradius : ").append(location.getRadius());
+				@Override
+				public void onFailure(int errorCode, String errorMessage) {
+					showToast(errorMessage);
+				}
 
-			if (location.getLocType() == BDLocation.TypeGpsLocation) {
-				// »ñÈ¡ËÙ¶È£¬½öGPSÊ±´æÔÚĞÅÏ¢
-				sb.append("\nspeed : ").append(location.getSpeed());
-				// GPSËø¶¨µÄÎÀĞÇ¸öÊı
-				sb.append("\nsatellite : ").append(location.getSatelliteNumber());
-			} else if (location.getLocType() == BDLocation.TypeNetWorkLocation) {
+			});
 
-			}
-			// »ñÈ¡ÏêÏ¸µØÖ·ĞÅÏ¢
-			sb.append("\naddr : ").append(location.getAddrStr());
-			// System.out.println(sb.toString());
-
-			Log.d("track", location.toString());
-			// logMsg(sb.toString());
+			// StringBuilder sb = new StringBuilder();
+			//
+			// sb.append("time : ").append(location.getTime());
+			// sb.append("\nerror code : ").append(location.getLocType());
+			// sb.append("\nlatitude : ").append(location.getLatitude());
+			// sb.append("\nlontitude : ").append(location.getLongitude());
+			// sb.append("\nradius : ").append(location.getRadius());
+			//
+			// if (location.getLocType() == BDLocation.TypeGpsLocation) {
+			// sb.append("\nspeed : ").append(location.getSpeed());
+			// sb.append("\nsatellite : ").append(location.getSatelliteNumber());
+			// } else if (location.getLocType() ==
+			// BDLocation.TypeNetWorkLocation) {
+			//
+			// }
+			// sb.append("\naddr : ").append(location.getAddrStr());
+			// Log.d("track", sb.toString());
 		}
 
 	}
