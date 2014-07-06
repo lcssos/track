@@ -2,8 +2,10 @@ package com.cs.track;
 
 import android.app.Activity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 
+import com.baidu.location.BDLocation;
 import com.baidu.location.BDLocationListener;
 import com.baidu.location.LocationClient;
 import com.baidu.location.LocationClientOption;
@@ -47,6 +49,45 @@ public class MainActivity extends Activity {
 		if (mLocationClient.isStarted()) {
 			mLocationClient.stop();
 		}
+	}
+
+	private class MyLocationListener implements BDLocationListener {
+		@Override
+		public void onReceiveLocation(BDLocation location) {
+			if (location == null) {
+				Log.d("track", "location null");
+				return;
+			}
+
+			StringBuilder sb = new StringBuilder();
+
+			// 当前定位时间
+			sb.append("time : ").append(location.getTime());
+			// 获取定位类型
+			sb.append("\nerror code : ").append(location.getLocType());
+			// 获取纬度坐标
+			sb.append("\nlatitude : ").append(location.getLatitude());
+			// 获取经度坐标
+			sb.append("\nlontitude : ").append(location.getLongitude());
+			// 获取定位精度
+			sb.append("\nradius : ").append(location.getRadius());
+
+			if (location.getLocType() == BDLocation.TypeGpsLocation) {
+				// 获取速度，仅GPS时存在信息
+				sb.append("\nspeed : ").append(location.getSpeed());
+				// GPS锁定的卫星个数
+				sb.append("\nsatellite : ").append(location.getSatelliteNumber());
+			} else if (location.getLocType() == BDLocation.TypeNetWorkLocation) {
+
+			}
+			// 获取详细地址信息
+			sb.append("\naddr : ").append(location.getAddrStr());
+			// System.out.println(sb.toString());
+
+			Log.d("track", location.toString());
+			// logMsg(sb.toString());
+		}
+
 	}
 
 }
